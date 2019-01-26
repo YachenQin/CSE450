@@ -1,0 +1,114 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class pepperController : MonoBehaviour {
+	Rigidbody rb;
+	public float turnSpeed = 200.0f;
+	public float moveSpeed = 1f;
+	public float maxSpeed = 6f;
+	public float defaultSpeed = 1f;
+	public float explosiveForce = 150f;
+	//	public GameObject opponent;
+	//	public GameObject spawnSpot;
+	//	public GameObject chip, melon, pepper;
+
+	private int eaten;
+	private Vector3 origin;
+	private float paperFraction;
+	private bool moving;
+	private Vector3 speed;
+	// Use this for initialization
+	void Start () {
+		rb = GetComponent<Rigidbody> ();
+		moving = false;
+		paperFraction = defaultSpeed / 2;
+		eaten = 0;
+		origin = rb.transform.position;
+	}
+
+	// Update is called once per frame
+	void Update () {
+
+		if (!moving) {
+			float turn = turnSpeed * Time.deltaTime;
+			Quaternion turnRotation = Quaternion.Euler (0.0f, turn, 0.0f);
+			rb.MoveRotation (rb.rotation * turnRotation);
+		}
+		if (Input.GetKeyDown ("space")) {
+			moving = true;
+			speed = moveSpeed * transform.forward;
+			rb.AddForce(speed*Time.deltaTime);
+
+		} else if (Input.GetKey ("space")) {
+			rb.velocity = moveSpeed * transform.forward;
+		}
+		else if (Input.GetKeyUp ("space")) {
+			rb.AddForce (speed * 50);
+			moving = false;
+		}
+
+		if (Input.GetKey (KeyCode.R)) {
+//			reload the scene
+		}
+	}
+
+	void OnTriggerEnter(Collider other){
+		//become slower
+		if(other.CompareTag("highFraction")){
+			moveSpeed /= 2f;
+		}
+
+		//become faster
+		if(other.CompareTag("lowFraction")){
+			moveSpeed *= 1.6f;
+		}
+
+		//become bigger
+		if (other.CompareTag ("powerUp")) {
+			Destroy (other.gameObject);
+			StartCoroutine (powerUp ());
+		}
+
+		//change direction
+		if (other.CompareTag ("changeDir")) {
+			Destroy (other.gameObject);
+			moveSpeed *= -1;
+			defaultSpeed *= -1;
+			Debug.Log ("trigger");
+		}
+
+		if (other.CompareTag ("goal")) {
+			Destroy (other.gameObject);
+			//goto next scene
+		}
+
+	}
+
+	void OnTriggerExit(Collider other){
+		moveSpeed = defaultSpeed; 
+	}
+
+	void OnCollisionEnter(Collision other){
+		if(other.collider.CompareTag("Player")){
+			rb.AddExplosionForce (explosiveForce, other.transform.position, 3f);
+		}
+	}
+
+	IEnumerator powerUp() {
+		transform.localScale = transform.localScale * 1.5f;
+		explosiveForce /= 3f;
+		eaten += 1;
+		yield return new WaitForSeconds (6);
+		transform.localScale /= 1.5f;
+		explosiveForce *= 3f;
+		eaten -= 1;
+	}
+
+	//generate a random position within the table
+	Vector3 generatePosition(){
+		float randomX = Random.Range (-1.427f, -0.081f);
+		float randomZ = Random.Range (-0.451f, 0.133f);
+		return new Vector3(randomX, 0.82f, randomZ);
+	}
+}
